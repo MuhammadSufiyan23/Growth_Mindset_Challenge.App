@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import os
@@ -12,37 +11,12 @@ st.set_page_config(page_title="Data Sweeper", layout="wide")
 st.markdown(
     """
     <style>
-    .stApp {
-        background-color: #1E1E1E;
-        color: white;
-        font-family: Arial, sans-serif;
-    }
-    .stTitle {
-        color: #FFA500;
-    }
-    .upload-box {
-        border: 2px dashed #FFA500;
-        padding: 10px;
-        text-align: center;
-        margin-bottom: 10px;
-    }
-    .upload-status {
-        color: #FFA500;
-        font-weight: bold;
-        margin-top: 10px;
-    }
-    .progress-bar {
-        width: 100%;
-        height: 10px;
-        background-color: #333;
-        border-radius: 5px;
-        margin-top: 5px;
-    }
-    .progress {
-        height: 100%;
-        background-color: #FFA500;
-        border-radius: 5px;
-    }
+    .stApp { background-color: #1E1E1E; color: white; font-family: Arial, sans-serif; }
+    .stTitle { color: #FFA500; }
+    .upload-box { border: 2px dashed #FFA500; padding: 10px; text-align: center; margin-bottom: 10px; }
+    .upload-status { color: #FFA500; font-weight: bold; margin-top: 10px; }
+    .progress-bar { width: 100%; height: 10px; background-color: #333; border-radius: 5px; margin-top: 5px; }
+    .progress { height: 100%; background-color: #FFA500; border-radius: 5px; }
     </style>
     """,
     unsafe_allow_html=True
@@ -73,7 +47,7 @@ if uploaded_files:
             if file_ext == ".csv":
                 df = pd.read_csv(file)
             elif file_ext == ".xlsx":
-                df = pd.read_excel(file)
+                df = pd.read_excel(file, engine="openpyxl")  # Engine specified
             else:
                 st.error(f"Unsupported File Type: {file_ext}")
                 continue
@@ -81,14 +55,15 @@ if uploaded_files:
             st.error(f"Error reading file {file.name}: {e}")
             continue
         
+
         progress_bar.progress(uploaded_count / total_files)
         st.markdown(f"<p class='upload-status'>✅ {uploaded_count} of {total_files} files uploaded</p>", unsafe_allow_html=True)
         time.sleep(0.5)
-        
+
 
         st.subheader(f"📌 Preview: {file.name}")
         st.dataframe(df.head())
-        
+
 
         st.subheader("🛠 Data Cleaning Options")
         if st.checkbox(f"Enable Cleaning for {file.name}"):
@@ -104,14 +79,14 @@ if uploaded_files:
                     numeric_cols = df.select_dtypes(include=["number"]).columns
                     df[numeric_cols] = df[numeric_cols].fillna(df[numeric_cols].mean())
                     st.success("✅ Missing values filled with column mean!")
-        
+
 
         st.subheader("🎯 Select Columns to Keep")
         selected_columns = st.multiselect(
             f"Choose columns for {file.name}", df.columns, default=df.columns
         )
         df = df[selected_columns]
-        
+
 
         st.subheader("📊 Data Visualization")
         if st.checkbox(f"Show visualization for {file.name}"):
@@ -120,8 +95,8 @@ if uploaded_files:
                 st.bar_chart(numeric_data.iloc[:, :2])
             else:
                 st.warning("No numeric data available for visualization.")
-        
-        
+
+
         st.subheader("🔄 Conversion Options")
         conversion_type = st.radio(
             f"Convert {file.name} to:", ["CSV", "Excel"], key=file.name
@@ -134,16 +109,16 @@ if uploaded_files:
                 file_name = file.name.replace(file_ext, ".csv")
                 mime_type = "text/csv"
             else:
-                df.to_excel(buffer, index=False)
+                df.to_excel(buffer, index=False, engine="openpyxl")  # Fixed
                 file_name = file.name.replace(file_ext, ".xlsx")
                 mime_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            
             buffer.seek(0)
+
             st.download_button(
                 label=f"Download {file.name} as {conversion_type}",
                 data=buffer,
                 file_name=file_name,
                 mime=mime_type
             )
-            
+
 st.success("🎉 All files processed successfully!")
